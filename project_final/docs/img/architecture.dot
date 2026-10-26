@@ -1,0 +1,13 @@
+digraph G { rankdir=TB; nodesep=0.5; ranksep=0.5; bgcolor="white";
+node [shape=box, style="filled,rounded", fontname="DejaVu Sans", fontsize=12, margin="0.2,0.12", color="#1F4E79", fillcolor="#DCE9F5", penwidth=1.3];
+edge [fontname="DejaVu Sans", fontsize=10, color="#555555"];
+user [label="Пользователь\n(администратор, методист,\nпреподаватель, аналитик)", fillcolor="#FFF2CC"];
+app  [label="Консольное приложение\ncollege_app.py (Python 3,\npsycopg2)"];
+conn [label="Служебная учётная запись\ncollege_app (LOGIN, NOINHERIT)", fillcolor="#E2F0D9"];
+auth [label="fn_authenticate()\nbcrypt-проверка пароля"];
+role [label="SET ROLE\nrole_admin | role_methodist |\nrole_teacher | role_analyst", fillcolor="#E2F0D9"];
+db   [label="PostgreSQL 16\nБД college_db\nтаблицы, представления,\nпроцедуры, триггеры", shape=cylinder, fillcolor="#DCE9F5"];
+audit[label="audit_log\n(журнал изменений)", shape=cylinder, fillcolor="#FFF2CC"];
+{rank=same; user; app} {rank=same; conn; auth} {rank=same; role; db}
+user -> app [label="ввод"]; app -> conn [label="подключение"]; conn -> auth [label="1. логин/пароль"];
+auth -> role [label="2. роль"]; role -> db [label="3. запросы\nс правами роли"]; db -> audit [label="триггеры\nfn_audit"]; }

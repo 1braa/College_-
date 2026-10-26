@@ -1,0 +1,352 @@
+{
+ "env": {
+  "cpu": "1",
+  "mem": "3.9",
+  "pg": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+  "os": "Ubuntu 24.04.4 LTS",
+  "shared_buffers": "128MB"
+ },
+ "small_plans": {
+  "S1": {
+   "sql": "SELECT * FROM grades WHERE lesson_id = 500",
+   "plan": [
+    "Bitmap Heap Scan on grades  (cost=4.29..9.96 rows=2 width=38) (actual time=0.021..0.021 rows=1 loops=1)",
+    "  Recheck Cond: (lesson_id = 500)",
+    "  Heap Blocks: exact=1",
+    "  Buffers: shared hit=3",
+    "  ->  Bitmap Index Scan on idx_grades_lesson  (cost=0.00..4.29 rows=2 width=0) (actual time=0.012..0.013 rows=1 loops=1)",
+    "        Index Cond: (lesson_id = 500)",
+    "        Buffers: shared hit=2",
+    "Planning:",
+    "  Buffers: shared hit=106",
+    "Planning Time: 0.425 ms",
+    "Execution Time: 0.073 ms"
+   ],
+   "exec_ms": 0.073
+  },
+  "S2": {
+   "sql": "SELECT * FROM students WHERE lower(last_name) LIKE 'иван%'",
+   "plan": [
+    "Seq Scan on students  (cost=0.00..12.50 rows=13 width=169) (actual time=0.028..0.124 rows=13 loops=1)",
+    "  Filter: (lower((last_name)::text) ~~ 'иван%'::text)",
+    "  Rows Removed by Filter: 287",
+    "  Buffers: shared hit=8",
+    "Planning:",
+    "  Buffers: shared hit=144",
+    "Planning Time: 0.380 ms",
+    "Execution Time: 0.146 ms"
+   ],
+   "exec_ms": 0.146
+  },
+  "S3": {
+   "sql": "SELECT * FROM lessons WHERE lesson_date BETWEEN DATE '2026-09-14' AND DATE '2026-09-18'",
+   "plan": [
+    "Bitmap Heap Scan on lessons  (cost=5.94..22.37 rows=162 width=65) (actual time=0.030..0.104 rows=162 loops=1)",
+    "  Recheck Cond: ((lesson_date >= '2026-09-14'::date) AND (lesson_date <= '2026-09-18'::date))",
+    "  Heap Blocks: exact=14",
+    "  Buffers: shared hit=16",
+    "  ->  Bitmap Index Scan on idx_lessons_date_pair  (cost=0.00..5.90 rows=162 width=0) (actual time=0.024..0.024 rows=162 loops=1)",
+    "        Index Cond: ((lesson_date >= '2026-09-14'::date) AND (lesson_date <= '2026-09-18'::date))",
+    "        Buffers: shared hit=2",
+    "Planning:",
+    "  Buffers: shared hit=96",
+    "Planning Time: 0.169 ms",
+    "Execution Time: 0.119 ms"
+   ],
+   "exec_ms": 0.119
+  }
+ },
+ "big": [
+  {
+   "code": "B1",
+   "title": "Оценки за одно занятие",
+   "sql": "SELECT * FROM perf.grades_big WHERE lesson_id = 500",
+   "index": "CREATE INDEX idx_big_lesson ON perf.grades_big (lesson_id)",
+   "before": {
+    "plan": [
+     "Gather  (cost=1000.00..7477.97 rows=495 width=16) (actual time=3.556..30.999 rows=494 loops=1)",
+     "  Workers Planned: 1",
+     "  Workers Launched: 1",
+     "  Buffers: shared hit=2752",
+     "  ->  Parallel Seq Scan on grades_big  (cost=0.00..6428.47 rows=291 width=16) (actual time=0.090..26.039 rows=247 loops=2)",
+     "        Filter: (lesson_id = 500)",
+     "        Rows Removed by Filter: 249753",
+     "        Buffers: shared hit=2752",
+     "Planning:",
+     "  Buffers: shared hit=14 read=1",
+     "Planning Time: 0.117 ms",
+     "Execution Time: 31.036 ms"
+    ],
+    "exec_ms": 31.036
+   },
+   "after": {
+    "plan": [
+     "Bitmap Heap Scan on grades_big  (cost=8.27..1281.63 rows=497 width=16) (actual time=0.111..0.660 rows=494 loops=1)",
+     "  Recheck Cond: (lesson_id = 500)",
+     "  Heap Blocks: exact=459",
+     "  Buffers: shared hit=459 read=3",
+     "  ->  Bitmap Index Scan on idx_big_lesson  (cost=0.00..8.15 rows=497 width=0) (actual time=0.056..0.056 rows=494 loops=1)",
+     "        Index Cond: (lesson_id = 500)",
+     "        Buffers: shared read=3",
+     "Planning:",
+     "  Buffers: shared hit=14 read=2",
+     "Planning Time: 0.201 ms",
+     "Execution Time: 0.692 ms"
+    ],
+    "exec_ms": 0.692
+   }
+  },
+  {
+   "code": "B2",
+   "title": "Средний балл одного студента",
+   "sql": "SELECT avg(grade_value) FROM perf.grades_big WHERE student_id = 42",
+   "index": "CREATE INDEX idx_big_student ON perf.grades_big (student_id)",
+   "before": {
+    "plan": [
+     "Finalize Aggregate  (cost=7431.03..7431.04 rows=1 width=32) (actual time=29.826..29.874 rows=1 loops=1)",
+     "  Buffers: shared hit=2752",
+     "  ->  Gather  (cost=7430.91..7431.02 rows=1 width=32) (actual time=29.814..29.864 rows=2 loops=1)",
+     "        Workers Planned: 1",
+     "        Workers Launched: 1",
+     "        Buffers: shared hit=2752",
+     "        ->  Partial Aggregate  (cost=6430.91..6430.92 rows=1 width=32) (actual time=25.588..25.589 rows=1 loops=2)",
+     "              Buffers: shared hit=2752",
+     "              ->  Parallel Seq Scan on grades_big  (cost=0.00..6428.47 rows=977 width=4) (actual time=0.029..25.517 rows=820 loops=2)",
+     "                    Filter: (student_id = 42)",
+     "                    Rows Removed by Filter: 249180",
+     "                    Buffers: shared hit=2752",
+     "Planning:",
+     "  Buffers: shared hit=12",
+     "Planning Time: 0.106 ms",
+     "Execution Time: 29.901 ms"
+    ],
+    "exec_ms": 29.901
+   },
+   "after": {
+    "plan": [
+     "Aggregate  (cost=2538.70..2538.71 rows=1 width=32) (actual time=2.031..2.033 rows=1 loops=1)",
+     "  Buffers: shared hit=1248 read=4",
+     "  ->  Bitmap Heap Scan on grades_big  (cost=21.22..2534.57 rows=1651 width=4) (actual time=0.332..1.899 rows=1639 loops=1)",
+     "        Recheck Cond: (student_id = 42)",
+     "        Heap Blocks: exact=1248",
+     "        Buffers: shared hit=1248 read=4",
+     "        ->  Bitmap Index Scan on idx_big_student  (cost=0.00..20.80 rows=1651 width=0) (actual time=0.158..0.159 rows=1639 loops=1)",
+     "              Index Cond: (student_id = 42)",
+     "              Buffers: shared read=4",
+     "Planning Time: 0.398 ms",
+     "Execution Time: 2.065 ms"
+    ],
+    "exec_ms": 2.065
+   }
+  },
+  {
+   "code": "B3",
+   "title": "Средний балл студентов группы (JOIN)",
+   "sql": "SELECT s.last_name, round(avg(g.grade_value), 2) FROM students s JOIN perf.grades_big g ON g.student_id = s.student_id WHERE s.group_id = 2 GROUP BY s.student_id, s.last_name",
+   "index": null,
+   "before": {
+    "plan": [
+     "Finalize GroupAggregate  (cost=7581.87..7584.43 rows=19 width=51) (actual time=72.293..74.393 rows=19 loops=1)",
+     "  Group Key: s.student_id",
+     "  Buffers: shared hit=2778",
+     "  ->  Gather Merge  (cost=7581.87..7584.05 rows=19 width=51) (actual time=72.282..74.369 rows=38 loops=1)",
+     "        Workers Planned: 1",
+     "        Workers Launched: 1",
+     "        Buffers: shared hit=2778",
+     "        ->  Sort  (cost=6581.86..6581.91 rows=19 width=51) (actual time=68.188..68.192 rows=19 loops=2)",
+     "              Sort Key: s.student_id",
+     "              Sort Method: quicksort  Memory: 26kB",
+     "              Buffers: shared hit=2778",
+     "              Worker 0:  Sort Method: quicksort  Memory: 26kB",
+     "              ->  Partial HashAggregate  (cost=6581.27..6581.46 rows=19 width=51) (actual time=68.167..68.172 rows=19 loops=2)",
+     "                    Group Key: s.student_id",
+     "                    Batches: 1  Memory Usage: 24kB",
+     "                    Buffers: shared hit=2771",
+     "                    Worker 0:  Batches: 1  Memory Usage: 24kB",
+     "                    ->  Hash Join  (cost=11.99..6488.13 rows=18628 width=23) (actual time=0.084..66.207 rows=15842 loops=2)",
+     "                          Hash Cond: (g.student_id = s.student_id)",
+     "                          Buffers: shared hit=2771",
+     "                          ->  Parallel Seq Scan on grades_big g  (cost=0.00..5693.18 rows=294118 width=8) (actual time=0.007..33.158 rows=250000 loops=2)",
+     "                                Buffers: shared hit=2752",
+     "                          ->  Hash  (cost=11.75..11.75 rows=19 width=19) (actual time=0.059..0.059 rows=19 loops=2)",
+     "                                Buckets: 1024  Batches: 1  Memory Usage: 9kB",
+     "                                Buffers: shared hit=16",
+     "                                ->  Seq Scan on students s  (cost=0.00..11.75 rows=19 width=19) (actual time=0.010..0.048 rows=19 loops=2)",
+     "                                      Filter: (group_id = 2)",
+     "                                      Rows Removed by Filter: 281",
+     "                                      Buffers: shared hit=16",
+     "Planning:",
+     "  Buffers: shared hit=33",
+     "Planning Time: 0.260 ms",
+     "Execution Time: 74.443 ms"
+    ],
+    "exec_ms": 74.443
+   },
+   "after": {
+    "plan": [
+     "Finalize GroupAggregate  (cost=7581.87..7584.43 rows=19 width=51) (actual time=78.235..80.358 rows=19 loops=1)",
+     "  Group Key: s.student_id",
+     "  Buffers: shared hit=2778",
+     "  ->  Gather Merge  (cost=7581.87..7584.05 rows=19 width=51) (actual time=78.224..80.335 rows=38 loops=1)",
+     "        Workers Planned: 1",
+     "        Workers Launched: 1",
+     "        Buffers: shared hit=2778",
+     "        ->  Sort  (cost=6581.86..6581.91 rows=19 width=51) (actual time=74.456..74.460 rows=19 loops=2)",
+     "              Sort Key: s.student_id",
+     "              Sort Method: quicksort  Memory: 26kB",
+     "              Buffers: shared hit=2778",
+     "              Worker 0:  Sort Method: quicksort  Memory: 26kB",
+     "              ->  Partial HashAggregate  (cost=6581.27..6581.46 rows=19 width=51) (actual time=74.432..74.437 rows=19 loops=2)",
+     "                    Group Key: s.student_id",
+     "                    Batches: 1  Memory Usage: 24kB",
+     "                    Buffers: shared hit=2771",
+     "                    Worker 0:  Batches: 1  Memory Usage: 24kB",
+     "                    ->  Hash Join  (cost=11.99..6488.13 rows=18628 width=23) (actual time=0.108..72.282 rows=15842 loops=2)",
+     "                          Hash Cond: (g.student_id = s.student_id)",
+     "                          Buffers: shared hit=2771",
+     "                          ->  Parallel Seq Scan on grades_big g  (cost=0.00..5693.18 rows=294118 width=8) (actual time=0.010..33.571 rows=250000 loops=2)",
+     "                                Buffers: shared hit=2752",
+     "                          ->  Hash  (cost=11.75..11.75 rows=19 width=19) (actual time=0.066..0.067 rows=19 loops=2)",
+     "                                Buckets: 1024  Batches: 1  Memory Usage: 9kB",
+     "                                Buffers: shared hit=16",
+     "                                ->  Seq Scan on students s  (cost=0.00..11.75 rows=19 width=19) (actual time=0.009..0.057 rows=19 loops=2)",
+     "                                      Filter: (group_id = 2)",
+     "                                      Rows Removed by Filter: 281",
+     "                                      Buffers: shared hit=16",
+     "Planning:",
+     "  Buffers: shared hit=12 read=3",
+     "Planning Time: 0.308 ms",
+     "Execution Time: 80.412 ms"
+    ],
+    "exec_ms": 80.412
+   }
+  }
+ ],
+ "load": [
+  {
+   "script": "read_schedule",
+   "clients": 10,
+   "seconds": 10,
+   "tps": 910.608286,
+   "latency_ms": 10.982,
+   "transactions": 9100,
+   "failed": 0
+  },
+  {
+   "script": "read_report",
+   "clients": 10,
+   "seconds": 10,
+   "tps": 2215.158161,
+   "latency_ms": 4.514,
+   "transactions": 22127,
+   "failed": 0
+  },
+  {
+   "script": "write_attendance",
+   "clients": 10,
+   "seconds": 10,
+   "tps": 5922.083693,
+   "latency_ms": 1.689,
+   "transactions": 59175,
+   "failed": 0
+  },
+  {
+   "script": "read_report",
+   "clients": 30,
+   "seconds": 10,
+   "tps": 1950.500038,
+   "latency_ms": 15.381,
+   "transactions": 19469,
+   "failed": 0
+  }
+ ],
+ "load_big": {
+  "before": {
+   "script": "big_student_avg",
+   "clients": 10,
+   "seconds": 10,
+   "tps": 33.547064,
+   "latency_ms": 298.089,
+   "transactions": 340,
+   "failed": 0
+  },
+  "after": {
+   "script": "big_student_avg",
+   "clients": 10,
+   "seconds": 10,
+   "tps": 632.173127,
+   "latency_ms": 15.818,
+   "transactions": 6329,
+   "failed": 0
+  }
+ },
+ "backup": {
+  "dump_cmd": "pg_dump -Fc -Z 6 -f backup/college_db.dump college_db",
+  "restore_cmd": "pg_restore --no-owner --no-privileges -d college_db_restore backup/college_db.dump",
+  "dump_seconds": 0.08,
+  "restore_seconds": 0.17,
+  "sizes": {
+   "dump": 176706,
+   "schema": 70549
+  },
+  "toc": ";\n; Archive created at 2026-10-16 08:30:58 UTC\n;     dbname: college_db\n;     TOC Entries: 263\n;     Compression: gzip\n;     Dump Version: 1.15-0\n;     Format: CUSTOM\n;     Integer: 4 bytes\n;     Offset: 8 bytes\n;     Dumped from database version: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)\n;     Dumped by pg_dump version: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)\n;",
+  "out_dump": "",
+  "out_restore": "",
+  "compare": [
+   [
+    "students",
+    "300",
+    "300",
+    "совпадает"
+   ],
+   [
+    "teachers",
+    "30",
+    "30",
+    "совпадает"
+   ],
+   [
+    "student_groups",
+    "16",
+    "16",
+    "совпадает"
+   ],
+   [
+    "lessons",
+    "1000",
+    "1000",
+    "совпадает"
+   ],
+   [
+    "grades",
+    "1500",
+    "1500",
+    "совпадает"
+   ],
+   [
+    "attendance",
+    "1200",
+    "1200",
+    "совпадает"
+   ],
+   [
+    "audit_log",
+    "0",
+    "0",
+    "совпадает"
+   ],
+   [
+    "app_users",
+    "4",
+    "4",
+    "совпадает"
+   ]
+  ]
+ },
+ "describe": {
+  "students": "Table \"public.students\"\n     Column      |           Type           | Collation | Nullable |             Default              \n-----------------+--------------------------+-----------+----------+----------------------------------\n student_id      | integer                  |           | not null | generated by default as identity\n last_name       | character varying(50)    |           | not null | \n first_name      | character varying(50)    |           | not null | \n middle_name     | character varying(50)    |           |          | \n birth_date      | date                     |           | not null | \n gender          | character(1)             |           | not null | \n phone           | character varying(20)    |           |          | \n email           | character varying(100)   |           | not null | \n address         | character varying(200)   |           |          | \n group_id        | integer                  |           | not null | \n status_id       | integer                  |           | not null | 1\n enrollment_date | date                     |           | not null | \n expelled_date   | date                     |           |          | \n updated_at      | timestamp with time zone |           | not null | now()\nIndexes:\n    \"students_pkey\" PRIMARY KEY, btree (student_id)\n    \"idx_students_active\" btree (group_id) WHERE expelled_date IS NULL\n    \"idx_students_group\" btree (group_id)\n    \"idx_students_lastname\" btree (lower(last_name::text) text_pattern_ops)\n    \"students_email_key\" UNIQUE CONSTRAINT, btree (email)\nCheck constraints:\n    \"students_birth_date_check\" CHECK (birth_date >= '1980-01-01'::date AND birth_date <= '2015-12-31'::date)\n    \"students_check\" CHECK (expelled_date IS NULL OR expelled_date >= enrollment_date)\n    \"students_email_check\" CHECK (email::text ~* '^[^@[:space:]]+@[^@[:space:]]+\\.[a-z]+$'::text)\n    \"students_gender_check\" CHECK (gender = ANY (ARRAY['М'::bpchar, 'Ж'::bpchar]))\nForeign-key constraints:\n    \"students_group_id_fkey\" FOREIGN KEY (group_id) REFERENCES student_groups(group_id)\n    \"students_status_id_fkey\" FOREIGN KEY (status_id) REFERENCES student_statuses(status_id)\nReferenced by:\n    TABLE \"attendance\" CONSTRAINT \"attendance_student_id_fkey\" FOREIGN KEY (student_id) REFERENCES students(student_id)\n    TABLE \"grades\" CONSTRAINT \"grades_student_id_fkey\" FOREIGN KEY (student_id) REFERENCES students(student_id)\n    TABLE \"student_private\" CONSTRAINT \"student_private_student_id_fkey\" FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE\nTriggers:\n    trg_audit_students AFTER INSERT OR DELETE OR UPDATE ON students FOR EACH ROW EXECUTE FUNCTION fn_audit('student_id')\n    trg_students_status BEFORE INSERT OR UPDATE ON students FOR EACH ROW EXECUTE FUNCTION fn_student_status()",
+  "lessons": "Table \"public.lessons\"\n    Column    |          Type          | Collation | Nullable |             Default              \n--------------+------------------------+-----------+----------+----------------------------------\n lesson_id    | integer                |           | not null | generated by default as identity\n load_id      | integer                |           | not null | \n classroom_id | integer                |           | not null | \n lesson_date  | date                   |           | not null | \n pair_number  | smallint               |           | not null | \n lesson_type  | character varying(20)  |           | not null | \n topic        | character varying(200) |           |          | \nIndexes:\n    \"lessons_pkey\" PRIMARY KEY, btree (lesson_id)\n    \"idx_lessons_date_pair\" btree (lesson_date, pair_number)\n    \"idx_lessons_load\" btree (load_id)\n    \"lessons_classroom_id_lesson_date_pair_number_key\" UNIQUE CONSTRAINT, btree (classroom_id, lesson_date, pair_number)\nCheck constraints:\n    \"lessons_lesson_type_check\" CHECK (lesson_type::text = ANY (ARRAY['Лекция'::character varying, 'Практика'::character varying, 'Лабораторная'::character varying, 'Контроль'::character varying]::text[]))\n    \"lessons_pair_number_check\" CHECK (pair_number >= 1 AND pair_number <= 7)\nForeign-key constraints:\n    \"lessons_classroom_id_fkey\" FOREIGN KEY (classroom_id) REFERENCES classrooms(classroom_id)\n    \"lessons_load_id_fkey\" FOREIGN KEY (load_id) REFERENCES teaching_load(load_id) ON DELETE CASCADE\nReferenced by:\n    TABLE \"attendance\" CONSTRAINT \"attendance_lesson_id_fkey\" FOREIGN KEY (lesson_id) REFERENCES lessons(lesson_id) ON DELETE CASCADE\n    TABLE \"grades\" CONSTRAINT \"grades_lesson_id_fkey\" FOREIGN KEY (lesson_id) REFERENCES lessons(lesson_id) ON DELETE CASCADE\nTriggers:\n    trg_audit_lessons AFTER INSERT OR DELETE OR UPDATE ON lessons FOR EACH ROW EXECUTE FUNCTION fn_audit('lesson_id')\n    trg_lessons_conflict BEFORE INSERT OR UPDATE OF load_id, lesson_date, pair_number ON lessons FOR EACH ROW EXECUTE FUNCTION fn_check_lesson_conflict()",
+  "grades": "Table \"public.grades\"\n   Column    |           Type           | Collation | Nullable |             Default              \n-------------+--------------------------+-----------+----------+----------------------------------\n grade_id    | integer                  |           | not null | generated by default as identity\n student_id  | integer                  |           | not null | \n lesson_id   | integer                  |           | not null | \n grade_value | smallint                 |           | not null | \n grade_kind  | character varying(20)    |           | not null | 'Текущая'::character varying\n graded_at   | timestamp with time zone |           | not null | now()\nIndexes:\n    \"grades_pkey\" PRIMARY KEY, btree (grade_id)\n    \"grades_student_id_lesson_id_key\" UNIQUE CONSTRAINT, btree (student_id, lesson_id)\n    \"idx_grades_lesson\" btree (lesson_id)\nCheck constraints:\n    \"grades_grade_kind_check\" CHECK (grade_kind::text = ANY (ARRAY['Текущая'::character varying, 'Контрольная'::character varying, 'Зачётная'::character varying]::text[]))\n    \"grades_grade_value_check\" CHECK (grade_value >= 2 AND grade_value <= 5)\nForeign-key constraints:\n    \"grades_lesson_id_fkey\" FOREIGN KEY (lesson_id) REFERENCES lessons(lesson_id) ON DELETE CASCADE\n    \"grades_student_id_fkey\" FOREIGN KEY (student_id) REFERENCES students(student_id)\nTriggers:\n    trg_audit_grades AFTER INSERT OR DELETE OR UPDATE ON grades FOR EACH ROW EXECUTE FUNCTION fn_audit('grade_id')\n    trg_grades_check BEFORE INSERT OR UPDATE OF student_id, lesson_id ON grades FOR EACH ROW EXECUTE FUNCTION fn_check_student_lesson()"
+ },
+ "indexes": "indexname        |                                                   indexdef                                                    \n------------------------+---------------------------------------------------------------------------------------------------------------\n idx_attendance_student | CREATE INDEX idx_attendance_student ON public.attendance USING btree (student_id)\n idx_audit_table_time   | CREATE INDEX idx_audit_table_time ON public.audit_log USING btree (table_name, changed_at DESC)\n idx_grades_lesson      | CREATE INDEX idx_grades_lesson ON public.grades USING btree (lesson_id)\n idx_lessons_date_pair  | CREATE INDEX idx_lessons_date_pair ON public.lessons USING btree (lesson_date, pair_number)\n idx_lessons_load       | CREATE INDEX idx_lessons_load ON public.lessons USING btree (load_id)\n idx_load_discipline    | CREATE INDEX idx_load_discipline ON public.teaching_load USING btree (discipline_id)\n idx_load_teacher       | CREATE INDEX idx_load_teacher ON public.teaching_load USING btree (teacher_id)\n idx_students_active    | CREATE INDEX idx_students_active ON public.students USING btree (group_id) WHERE (expelled_date IS NULL)\n idx_students_group     | CREATE INDEX idx_students_group ON public.students USING btree (group_id)\n idx_students_lastname  | CREATE INDEX idx_students_lastname ON public.students USING btree (lower((last_name)::text) text_pattern_ops)\n(10 rows)"
+}

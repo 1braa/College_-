@@ -1,0 +1,36 @@
+digraph G { rankdir=TB; nodesep=0.45; ranksep=0.9; splines=true; bgcolor="white";
+node [shape=box, style="filled,rounded", fillcolor="#DCE9F5", color="#1F4E79", fontname="DejaVu Sans", fontsize=13, margin="0.18,0.10", penwidth=1.4];
+edge [fontname="DejaVu Sans", fontsize=10, color="#555555", arrowhead=crow, arrowtail=tee, dir=both, labeldistance=1.6];
+SPEC [label="Специальность", fillcolor="#DCE9F5"];
+GRP [label="Группа", fillcolor="#DCE9F5"];
+STU [label="Студент", fillcolor="#DCE9F5"];
+STS [label="Статус студента", fillcolor="#E2F0D9"];
+TCH [label="Преподаватель", fillcolor="#DCE9F5"];
+POS [label="Должность", fillcolor="#E2F0D9"];
+DSC [label="Дисциплина", fillcolor="#DCE9F5"];
+CTL [label="Форма контроля", fillcolor="#E2F0D9"];
+CUR [label="Учебный план", fillcolor="#DCE9F5"];
+LOAD [label="Нагрузка", fillcolor="#DCE9F5"];
+ROOM [label="Аудитория", fillcolor="#E2F0D9"];
+LES [label="Занятие", fillcolor="#FFF2CC"];
+GRD [label="Оценка", fillcolor="#FFF2CC"];
+ATT [label="Посещаемость", fillcolor="#FFF2CC"];
+SPEC -> GRP [label="обучает", taillabel="1", headlabel="N"];
+SPEC -> CUR [label="включает", taillabel="1", headlabel="N"];
+DSC -> CUR [label="входит в", taillabel="1", headlabel="N"];
+CTL -> CUR [label="определяет
+контроль", taillabel="1", headlabel="N"];
+GRP -> STU [label="объединяет", taillabel="1", headlabel="N"];
+STS -> STU [label="характеризует", taillabel="1", headlabel="N"];
+POS -> TCH [label="занимает", taillabel="1", headlabel="N"];
+TCH -> GRP [label="курирует", taillabel="1", headlabel="N"];
+GRP -> LOAD [label="изучает", taillabel="1", headlabel="N"];
+DSC -> LOAD [label="преподаётся", taillabel="1", headlabel="N"];
+TCH -> LOAD [label="ведёт", taillabel="1", headlabel="N"];
+LOAD -> LES [label="реализуется в", taillabel="1", headlabel="N"];
+ROOM -> LES [label="проходит в", taillabel="1", headlabel="N"];
+STU -> GRD [label="получает", taillabel="1", headlabel="N"];
+LES -> GRD [label="оценивается", taillabel="1", headlabel="N"];
+STU -> ATT [label="отмечается", taillabel="1", headlabel="N"];
+LES -> ATT [label="фиксируется", taillabel="1", headlabel="N"];
+}
